@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# Configuration
+GITHUB_USER="jonas-be"
+FILE="test.file"
+GH_SYNC_MARKER="# Github ssh key sync"
+
+escape_sed() {
+    # Escape all special characters that might affect regex operations
+    echo "$1" | sed -e 's:[][\\/.*^$&]:\\&:g' -e ':a;N;$!ba;s/\n/\\n/g'
+}
+
+# Fetch keys and render output for replacment
+githubSshKeys=$(curl https://github.com/${GITHUB_USER}.keys)
+toWrite="${GH_SYNC_MARKER}\n${githubSshKeys}"
+toWrite=$(escape_sed "$toWrite")
+
+# Select to be replaced part
+toBeReplaced=$(awk "/^${GH_SYNC_MARKER}/{flag=1} flag; /end_pattern/{flag=0}" "$FILE")
+toBeReplaced=$(escape_sed "$toBeReplaced")
+
+# Replace in file
+sed -z -i "s|${toBeReplaced}|${toWrite}|g" "$FILE"
+
+echo "Done"
